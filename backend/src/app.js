@@ -1,4 +1,3 @@
-require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
@@ -45,6 +44,10 @@ app.use(
   })
 );
 
+// ── Routes ──────────────────────────────────────────
+app.use('/api/auth', require('./routes/auth.routes'));
+
+// ── Health check ────────────────────────────────────
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     success: true,
@@ -56,6 +59,7 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// ── Error handling ──────────────────────────────────
 app.use(notFound);
 app.use(errorHandler);
 

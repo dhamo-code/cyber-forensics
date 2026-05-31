@@ -1,38 +1,45 @@
 const logger = require('../utils/logger');
 const ApiResponse = require('../utils/apiResponse');
 
+// eslint-disable-next-line no-unused-vars
 function errorHandler(err, req, res, next) {
-  logger.error(`${req.method} ${req.originalUrl} → ${err.message}`);
+  let message = err.message || 'Something went wrong';
+  let statusCode = err.statusCode || 500;
 
   if (err.name === 'ValidationError') {
     const messages = Object.values(err.errors).map((e) => e.message);
-    return ApiResponse.error(res, 'Validation failed', 400, messages);
+    message = messages.join(', ');
+    statusCode = 400;
   }
 
   if (err.code === 11000) {
     const field = Object.keys(err.keyValue)[0];
-    return ApiResponse.error(res, `${field} already exists`, 409);
+    message = `${field} already exists`;
+    statusCode = 409;
   }
 
   if (err.name === 'CastError') {
-    return ApiResponse.error(res, 'Invalid ID format', 400);
+    message = 'Invalid ID format';
+    statusCode = 400;
   }
 
   if (err.name === 'JsonWebTokenError') {
-    return ApiResponse.error(res, 'Invalid token', 401);
+    message = 'Invalid token';
+    statusCode = 401;
   }
 
   if (err.name === 'TokenExpiredError') {
-    return ApiResponse.error(res, 'Token expired', 401);
+    message = 'Token expired';
+    statusCode = 401;
   }
 
-  const statusCode = err.statusCode || 500;
-  const message =
-    process.env.NODE_ENV === 'production' && statusCode === 500
-      ? 'Internal server error'
-      : err.message || 'Something went wrong';
+  logger.error(`${req.method} ${req.originalUrl} → ${message}`);
 
-  return ApiResponse.error(res, message, statusCode);
+  return res.status(statusCode).json({
+    success: false,
+    message,
+    timestamp: new Date().toISOString(),
+  });
 }
 
 module.exports = errorHandler;
