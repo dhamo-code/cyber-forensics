@@ -4,6 +4,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { getMe } from './store/slices/authSlice';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import Cases from './pages/Cases';
+import LogAnalysis from './pages/LogAnalysis';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 
 function App() {
@@ -21,20 +23,18 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route
         path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
+        element={<ProtectedRoute><Dashboard /></ProtectedRoute>}
       />
       <Route
-        path="/"
-        element={<Navigate to="/dashboard" replace />}
+        path="/cases"
+        element={<ProtectedRoute><Cases /></ProtectedRoute>}
       />
       <Route
-        path="*"
-        element={<Navigate to="/dashboard" replace />}
+        path="/logs"
+        element={<ProtectedRoute><LogAnalysis /></ProtectedRoute>}
       />
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 }

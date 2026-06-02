@@ -46,6 +46,9 @@ app.use(
 
 // ── Routes ──────────────────────────────────────────
 app.use('/api/auth', require('./routes/auth.routes'));
+app.use('/api/cases', require('./routes/cases.routes'));
+app.use('/api/logs', require('./routes/logs.routes'));
+app.use('/api/evidence', require('./routes/evidence.routes'));
 
 // ── Health check ────────────────────────────────────
 app.get('/api/health', (req, res) => {
