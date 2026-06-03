@@ -5,12 +5,16 @@ const http = require('http');
 const app = require('./src/app');
 const { validateEnv } = require('./src/config/env');
 const { connectDB } = require('./src/config/db');
+const { initializeSocket } = require('./src/sockets/socketManager');
 const logger = require('./src/utils/logger');
 
 validateEnv();
 
 const PORT = process.env.PORT || 5000;
 const server = http.createServer(app);
+
+// Initialize Socket.io
+initializeSocket(server);
 
 async function start() {
   await connectDB();
