@@ -6,7 +6,6 @@ const Alert = require('../models/Alert');
 const Report = require('../models/Report');
 
 const generateReport = async (userId, caseId = null) => {
-  // Collect data
   const caseQuery = caseId ? { _id: caseId } : {};
   const [cases, alerts] = await Promise.all([
     Case.find(caseQuery).populate('createdBy', 'name').limit(20),
@@ -20,48 +19,54 @@ const generateReport = async (userId, caseId = null) => {
     resolvedCases: cases.filter((c) => c.status === 'resolved').length,
   };
 
-  // Create PDF
   const fileName = `report-${Date.now()}.pdf`;
-  const filePath = path.join(process.cwd(), 'reports', fileName);
+  const reportsDir = path.join(process.cwd(), 'reports');
+  const filePath = path.join(reportsDir, fileName);
 
-  // Make sure reports folder exists
-  if (!fs.existsSync(path.join(process.cwd(), 'reports'))) {
-    fs.mkdirSync(path.join(process.cwd(), 'reports'), { recursive: true });
+  if (!fs.existsSync(reportsDir)) {
+    fs.mkdirSync(reportsDir, { recursive: true });
   }
 
-  const doc = new PDFDocument({ margin: 50 });
+  const doc = new PDFDocument({
+    margin: 50,
+    bufferPages: false,
+  });
+
   const stream = fs.createWriteStream(filePath);
   doc.pipe(stream);
 
-  // Header
+  // ── Header ──────────────────────────────────────
   doc.fontSize(22).font('Helvetica-Bold')
     .text('CYBER FORENSICS INVESTIGATION REPORT', { align: 'center' });
+  doc.moveDown(0.5);
   doc.fontSize(10).font('Helvetica')
     .text(`Generated: ${new Date().toLocaleString()}`, { align: 'center' });
   doc.moveDown();
 
-  // Divider
   doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();
   doc.moveDown();
 
-  // Summary
+  // ── Summary ─────────────────────────────────────
   doc.fontSize(14).font('Helvetica-Bold').text('EXECUTIVE SUMMARY');
   doc.moveDown(0.5);
   doc.fontSize(11).font('Helvetica');
-  doc.text(`Total Cases: ${summary.totalCases}`);
-  doc.text(`Total Alerts: ${summary.totalAlerts}`);
+  doc.text(`Total Cases:      ${summary.totalCases}`);
+  doc.text(`Total Alerts:     ${summary.totalAlerts}`);
   doc.text(`Critical Threats: ${summary.criticalThreats}`);
-  doc.text(`Resolved Cases: ${summary.resolvedCases}`);
+  doc.text(`Resolved Cases:   ${summary.resolvedCases}`);
   doc.moveDown();
 
-  // Cases
+  // ── Cases ────────────────────────────────────────
   if (cases.length > 0) {
-    doc.addPage();
+    doc.moveDown();
+    doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();
+    doc.moveDown();
     doc.fontSize(14).font('Helvetica-Bold').text('CASES SUMMARY');
     doc.moveDown(0.5);
+
     cases.forEach((c, i) => {
       doc.fontSize(11).font('Helvetica-Bold')
-        .text(`${i + 1}. ${c.caseNumber} - ${c.title}`);
+        .text(`${i + 1}. ${c.caseNumber || 'N/A'} - ${c.title}`);
       doc.font('Helvetica')
         .text(`   Status: ${c.status} | Priority: ${c.priority}`)
         .text(`   Attack Type: ${c.attackType || 'Unknown'}`)
@@ -70,14 +75,20 @@ const generateReport = async (userId, caseId = null) => {
     });
   }
 
-  // Alerts
+  // ── Alerts ───────────────────────────────────────
   if (alerts.length > 0) {
-    doc.addPage();
+    doc.moveDown();
+    doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();
+    doc.moveDown();
     doc.fontSize(14).font('Helvetica-Bold').text('SECURITY ALERTS');
     doc.moveDown(0.5);
+
     alerts.slice(0, 20).forEach((a, i) => {
       doc.fontSize(11).font('Helvetica-Bold')
-        .fillColor(a.severity === 'critical' ? '#dc2626' : a.severity === 'high' ? '#ea580c' : '#000000')
+        .fillColor(
+          a.severity === 'critical' ? '#dc2626' :
+          a.severity === 'high' ? '#ea580c' : '#000000'
+        )
         .text(`${i + 1}. [${a.severity.toUpperCase()}] ${a.title}`);
       doc.fillColor('#000000').font('Helvetica')
         .text(`   Type: ${a.type} | Score: ${a.threatScore}/100`)
@@ -87,18 +98,15 @@ const generateReport = async (userId, caseId = null) => {
     });
   }
 
-  // Footer on every page
-  const pageCount = doc.bufferedPageRange().count;
-  for (let i = 0; i < pageCount; i++) {
-    doc.switchToPage(i);
-    doc.fontSize(8).fillColor('#666666')
-      .text(
-        `CyberForensics AI System | CONFIDENTIAL | Page ${i + 1} of ${pageCount}`,
-        50, doc.page.height - 40,
-        { align: 'center', width: doc.page.width - 100 }
-      );
+  // ── No data message ──────────────────────────────
+  if (cases.length === 0 && alerts.length === 0) {
+    doc.moveDown();
+    doc.fontSize(12).font('Helvetica')
+      .fillColor('#666666')
+      .text('No cases or alerts found in the system.', { align: 'center' });
   }
 
+  // ── End document ─────────────────────────────────
   doc.end();
 
   await new Promise((resolve, reject) => {
@@ -106,9 +114,10 @@ const generateReport = async (userId, caseId = null) => {
     stream.on('error', reject);
   });
 
-  // Save report record
   const report = await Report.create({
-    title: caseId ? `Case Report - ${new Date().toLocaleDateString()}` : `Full System Report - ${new Date().toLocaleDateString()}`,
+    title: caseId
+      ? `Case Report - ${new Date().toLocaleDateString()}`
+      : `Full System Report - ${new Date().toLocaleDateString()}`,
     caseId: caseId || null,
     generatedBy: userId,
     filePath,
