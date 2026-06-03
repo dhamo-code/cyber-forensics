@@ -1,0 +1,43 @@
+const reportService = require('../services/report.service');
+const Report = require('../models/Report');
+const ApiResponse = require('../utils/apiResponse');
+const logger = require('../utils/logger');
+const fs = require('fs');
+
+exports.generateReport = async (req, res) => {
+  try {
+    const { caseId } = req.body;
+    const report = await reportService.generateReport(req.user._id, caseId);
+    logger.info(`Report generated: ${report._id} by ${req.user.email}`);
+    return ApiResponse.success(res, report, 'Report generated successfully', 201);
+  } catch (err) {
+    logger.error(`generateReport error: ${err.message}`);
+    return ApiResponse.error(res, err.message);
+  }
+};
+
+exports.getReports = async (req, res) => {
+  try {
+    const reports = await reportService.getReports();
+    return ApiResponse.success(res, reports);
+  } catch (err) {
+    logger.error(`getReports error: ${err.message}`);
+    return ApiResponse.error(res, err.message);
+  }
+};
+
+exports.downloadReport = async (req, res) => {
+  try {
+    const report = await Report.findById(req.params.id);
+    if (!report) {
+      return ApiResponse.error(res, 'Report not found', 404);
+    }
+    if (!fs.existsSync(report.filePath)) {
+      return ApiResponse.error(res, 'Report file not found', 404);
+    }
+    res.download(report.filePath, `report-${report._id}.pdf`);
+  } catch (err) {
+    logger.error(`downloadReport error: ${err.message}`);
+    return ApiResponse.error(res, err.message);
+  }
+};

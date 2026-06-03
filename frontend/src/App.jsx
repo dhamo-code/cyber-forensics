@@ -8,6 +8,7 @@ import Cases from './pages/Cases';
 import LogAnalysis from './pages/LogAnalysis';
 import Alerts from './pages/Alerts';
 import ThreatIntel from './pages/ThreatIntel';
+import Reports from './pages/Reports';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 
 function App() {
@@ -28,6 +29,7 @@ function App() {
       <Route path="/logs" element={<ProtectedRoute><LogAnalysis /></ProtectedRoute>} />
       <Route path="/threats" element={<ProtectedRoute><ThreatIntel /></ProtectedRoute>} />
       <Route path="/alerts" element={<ProtectedRoute><Alerts /></ProtectedRoute>} />
+      <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
