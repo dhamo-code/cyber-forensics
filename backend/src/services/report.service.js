@@ -1,9 +1,33 @@
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const Case = require('../models/Case');
 const Alert = require('../models/Alert');
 const Report = require('../models/Report');
+
+// Encrypt the PDF file using AES-256
+const encryptReport = (filePath) => {
+  const key = crypto.scryptSync(
+    process.env.JWT_SECRET || 'defaultkey',
+    'salt',
+    32
+  );
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+
+  const input = fs.readFileSync(filePath);
+  const encrypted = Buffer.concat([
+    iv,
+    cipher.update(input),
+    cipher.final(),
+  ]);
+
+  const encryptedPath = filePath + '.enc';
+  fs.writeFileSync(encryptedPath, encrypted);
+
+  return encryptedPath;
+};
 
 const generateReport = async (userId, caseId = null) => {
   const caseQuery = caseId ? { _id: caseId } : {};
@@ -41,6 +65,8 @@ const generateReport = async (userId, caseId = null) => {
   doc.moveDown(0.5);
   doc.fontSize(10).font('Helvetica')
     .text(`Generated: ${new Date().toLocaleString()}`, { align: 'center' });
+  doc.fontSize(10).font('Helvetica')
+    .text('CONFIDENTIAL - AES-256 Encrypted', { align: 'center' });
   doc.moveDown();
 
   doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke();
@@ -114,16 +140,25 @@ const generateReport = async (userId, caseId = null) => {
     stream.on('error', reject);
   });
 
+  // ── Encrypt the PDF ──────────────────────────────
+  const encryptedPath = encryptReport(filePath);
+
+  // Delete original unencrypted PDF
+  if (fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+  }
+
   const report = await Report.create({
     title: caseId
       ? `Case Report - ${new Date().toLocaleDateString()}`
       : `Full System Report - ${new Date().toLocaleDateString()}`,
     caseId: caseId || null,
     generatedBy: userId,
-    filePath,
-    fileSize: fs.statSync(filePath).size,
+    filePath: encryptedPath,
+    fileSize: fs.statSync(encryptedPath).size,
     status: 'ready',
     summary,
+    isEncrypted: true,
   });
 
   return report;

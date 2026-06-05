@@ -9,6 +9,7 @@ const reportSchema = new mongoose.Schema(
     filePath: String,
     fileSize: Number,
     status: { type: String, enum: ['generating', 'ready', 'failed'], default: 'generating' },
+    isEncrypted: { type: Boolean, default: false },
     summary: {
       totalCases: Number,
       totalAlerts: Number,

@@ -43,6 +43,9 @@ app.use(
     stream: { write: (msg) => logger.http(msg.trim()) },
   })
 );
+// ── Audit Logger ─────────────────────────────────────
+const auditLogger = require('./middleware/auditLogger');
+app.use('/api/', auditLogger);
 
 // ── Routes ──────────────────────────────────────────
 app.use('/api/auth', require('./routes/auth.routes'));

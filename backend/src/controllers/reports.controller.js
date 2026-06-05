@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const reportService = require('../services/report.service');
 const Report = require('../models/Report');
 const ApiResponse = require('../utils/apiResponse');
@@ -35,6 +36,34 @@ exports.downloadReport = async (req, res) => {
     if (!fs.existsSync(report.filePath)) {
       return ApiResponse.error(res, 'Report file not found', 404);
     }
+
+    // Decrypt if encrypted
+    if (report.isEncrypted) {
+      const key = crypto.scryptSync(
+        process.env.JWT_SECRET || 'defaultkey',
+        'salt',
+        32
+      );
+
+      const encryptedData = fs.readFileSync(report.filePath);
+      const iv = encryptedData.slice(0, 16);
+      const encrypted = encryptedData.slice(16);
+
+      const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+      const decrypted = Buffer.concat([
+        decipher.update(encrypted),
+        decipher.final(),
+      ]);
+
+      // Send decrypted PDF
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="report-${report._id}.pdf"`
+      );
+      return res.send(decrypted);
+    }
+
     res.download(report.filePath, `report-${report._id}.pdf`);
   } catch (err) {
     logger.error(`downloadReport error: ${err.message}`);
