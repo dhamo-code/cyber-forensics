@@ -64,7 +64,7 @@ exports.downloadReport = async (req, res) => {
       return res.send(decrypted);
     }
 
-    res.download(report.filePath, `report-${report._id}.pdf`);
+     res.download(report.filePath, `report-${report._id}.pdf`);
   } catch (err) {
     logger.error(`downloadReport error: ${err.message}`);
     return ApiResponse.error(res, err.message);

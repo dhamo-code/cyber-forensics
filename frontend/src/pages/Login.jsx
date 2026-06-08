@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { loginUser, clearError } from '../store/slices/authSlice';
 import { Shield, Eye, EyeOff, Lock, Mail } from 'lucide-react';
@@ -144,8 +144,18 @@ function Login() {
             </button>
           </form>
 
+          <p className="text-center text-gray-400 text-sm mt-6">
+            Don&apos;t have an account?{' '}
+            <Link
+              to="/register"
+              className="text-blue-400 hover:text-blue-300 font-medium"
+            >
+              Create one
+            </Link>
+          </p>
+
           {/* Demo credentials */}
-          <div className="mt-6 p-4 bg-gray-700 rounded-lg border border-gray-600">
+          <div className="mt-4 p-4 bg-gray-700 rounded-lg border border-gray-600">
             <p className="text-xs text-gray-400 font-medium mb-2">
               Demo Credentials:
             </p>

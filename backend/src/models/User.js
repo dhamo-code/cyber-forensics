@@ -45,6 +45,18 @@ const userSchema = new mongoose.Schema(
       type: [String],
       select: false,
     },
+    payment: {
+      orderId: String,
+      paymentId: String,
+      amount: Number,
+      currency: { type: String, default: 'INR' },
+      status: {
+        type: String,
+        enum: ['pending', 'completed'],
+        default: 'pending',
+      },
+      paidAt: Date,
+    },
   },
   {
     timestamps: true,

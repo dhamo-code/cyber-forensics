@@ -1,16 +1,32 @@
 const authService = require('../services/auth.service');
+const paymentService = require('../services/payment.service');
 const ApiResponse = require('../utils/apiResponse');
 const logger = require('../utils/logger');
 
 // Register
 exports.register = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const {
+      name,
+      email,
+      password,
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+    } = req.body;
 
     if (!name || !email || !password) {
       return ApiResponse.error(
         res,
         'Name, email and password are required.',
+        400
+      );
+    }
+
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return ApiResponse.error(
+        res,
+        'Payment verification is required to register.',
         400
       );
     }
@@ -23,12 +39,22 @@ exports.register = async (req, res) => {
       );
     }
 
-    const result = await authService.register(
-      name,
-      email,
-      password,
-      role
+    const isValidPayment = paymentService.verifyPaymentSignature(
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature
     );
+
+    if (!isValidPayment) {
+      return ApiResponse.error(res, 'Invalid payment signature.', 400);
+    }
+
+    const result = await authService.register(name, email, password, {
+      orderId: razorpay_order_id,
+      paymentId: razorpay_payment_id,
+      amount: paymentService.REGISTRATION_AMOUNT,
+      currency: 'INR',
+    });
 
     logger.info(`New user registered: ${email}`);
 

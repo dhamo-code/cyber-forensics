@@ -17,13 +17,36 @@ const generateRefreshToken = (userId) => {
   );
 };
 
-const register = async (name, email, password, role = 'viewer') => {
+const register = async (
+  name,
+  email,
+  password,
+  paymentDetails = null
+) => {
   const existing = await User.findOne({ email });
   if (existing) {
     throw new Error('Email already registered');
   }
 
-  const user = await User.create({ name, email, password, role });
+  const userData = {
+    name,
+    email,
+    password,
+    role: 'viewer',
+  };
+
+  if (paymentDetails) {
+    userData.payment = {
+      orderId: paymentDetails.orderId,
+      paymentId: paymentDetails.paymentId,
+      amount: paymentDetails.amount,
+      currency: paymentDetails.currency || 'INR',
+      status: 'completed',
+      paidAt: new Date(),
+    };
+  }
+
+  const user = await User.create(userData);
 
   const accessToken = generateAccessToken(user._id, user.role);
   const refreshToken = generateRefreshToken(user._id);
