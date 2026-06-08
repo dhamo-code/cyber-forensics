@@ -98,6 +98,9 @@ exports.getLogs = async (req, res) => {
     const query = {};
     if (isSuspicious !== undefined) query.isSuspicious = isSuspicious === 'true';
     if (severity) query.severity = severity;
+    if (req.user.role !== 'admin') {
+      query.uploadedBy = req.user._id;
+    }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const [logs, total] = await Promise.all([

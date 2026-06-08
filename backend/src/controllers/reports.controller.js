@@ -19,7 +19,10 @@ exports.generateReport = async (req, res) => {
 
 exports.getReports = async (req, res) => {
   try {
-    const reports = await reportService.getReports();
+    const reports = await reportService.getReports(
+      req.user._id,
+      req.user.role
+    );
     return ApiResponse.success(res, reports);
   } catch (err) {
     logger.error(`getReports error: ${err.message}`);
@@ -37,7 +40,6 @@ exports.downloadReport = async (req, res) => {
       return ApiResponse.error(res, 'Report file not found', 404);
     }
 
-    // Decrypt if encrypted
     if (report.isEncrypted) {
       const key = crypto.scryptSync(
         process.env.JWT_SECRET || 'defaultkey',
@@ -55,7 +57,6 @@ exports.downloadReport = async (req, res) => {
         decipher.final(),
       ]);
 
-      // Send decrypted PDF
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader(
         'Content-Disposition',
@@ -64,7 +65,7 @@ exports.downloadReport = async (req, res) => {
       return res.send(decrypted);
     }
 
-     res.download(report.filePath, `report-${report._id}.pdf`);
+    res.download(report.filePath, `report-${report._id}.pdf`);
   } catch (err) {
     logger.error(`downloadReport error: ${err.message}`);
     return ApiResponse.error(res, err.message);

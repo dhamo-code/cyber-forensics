@@ -164,8 +164,9 @@ const generateReport = async (userId, caseId = null) => {
   return report;
 };
 
-const getReports = async () => {
-  return await Report.find()
+const getReports = async (userId, role) => {
+  const query = role === 'admin' ? {} : { generatedBy: userId };
+  return await Report.find(query)
     .populate('generatedBy', 'name email')
     .populate('caseId', 'caseNumber title')
     .sort({ createdAt: -1 });

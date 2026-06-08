@@ -8,7 +8,7 @@ const getCases = async (filters = {}, userId, role) => {
   if (filters.attackType) query.attackType = filters.attackType;
 
   // Viewers only see their own cases
-  if (role === 'viewer') query.createdBy = userId;
+  if (role !== 'admin') query.createdBy = userId;
 
   const page = parseInt(filters.page) || 1;
   const limit = parseInt(filters.limit) || 10;
