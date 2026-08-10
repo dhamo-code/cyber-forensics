@@ -151,3 +151,6 @@ razorpay_test*
 console.log*
 security-check.js
 *.key
+backend/reports/
+backend/uploads/
+backend/logs/
