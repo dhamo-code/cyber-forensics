@@ -2,7 +2,7 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const http = require('http');
-const app = require('./src/app');
+const app = require('./src/app'); // adminRoutes now registered INSIDE app.js, not here
 const { validateEnv } = require('./src/config/env');
 const { connectDB } = require('./src/config/db');
 const { initializeSocket } = require('./src/sockets/socketManager');

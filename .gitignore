@@ -141,3 +141,13 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+# API key files
+razorpay_test*
+console.log*
+security-check.js
+*.key
+*.pem
+razorpay_test*
+console.log*
+security-check.js
+*.key

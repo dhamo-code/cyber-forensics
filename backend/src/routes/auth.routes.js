@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/auth');
-
 const {
   register,
   login,
@@ -10,18 +9,12 @@ const {
   getMe,
 } = require('../controllers/auth.controller');
 
-// Debug middleware
-router.use((req, res, next) => {
-  console.log('Auth route hit:', req.method, req.path);
-  next();
-});
-
-// Public routes
+// Public routes — no JWT needed
 router.post('/register', register);
 router.post('/login', login);
 router.post('/refresh-token', refreshToken);
 
-// Protected routes
+// Protected routes — JWT required
 router.post('/logout', protect, logout);
 router.get('/me', protect, getMe);
 

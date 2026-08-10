@@ -3,81 +3,50 @@ import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 
-// Create Razorpay registration order
 export const createRegistrationOrder = createAsyncThunk(
   'auth/createRegistrationOrder',
   async ({ email }, { rejectWithValue }) => {
     try {
-      const response = await axios.post(
-        `${API_URL}/api/payments/create-registration-order`,
-        { email }
-      );
+      const response = await axios.post(`${API_URL}/api/payments/create-registration-order`, { email });
       return response.data.data;
     } catch (err) {
-      return rejectWithValue(
-        err.response?.data?.message || 'Failed to create payment order'
-      );
+      return rejectWithValue(err.response?.data?.message || 'Failed to create payment order');
     }
   }
 );
 
-// Register with payment verification
 export const registerUser = createAsyncThunk(
   'auth/register',
-  async (
-    {
-      name,
-      email,
-      password,
-      razorpay_order_id,
-      razorpay_payment_id,
-      razorpay_signature,
-    },
-    { rejectWithValue }
-  ) => {
+  async ({ name, email, password, razorpay_order_id, razorpay_payment_id, razorpay_signature }, { rejectWithValue }) => {
     try {
       const response = await axios.post(`${API_URL}/api/auth/register`, {
-        name,
-        email,
-        password,
-        razorpay_order_id,
-        razorpay_payment_id,
-        razorpay_signature,
+        name, email, password, razorpay_order_id, razorpay_payment_id, razorpay_signature,
       });
       const { accessToken, refreshToken, user } = response.data.data;
       localStorage.setItem('accessToken', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
       return { user, accessToken, refreshToken };
     } catch (err) {
-      return rejectWithValue(
-        err.response?.data?.message || 'Registration failed'
-      );
+      return rejectWithValue(err.response?.data?.message || 'Registration failed');
     }
   }
 );
 
-// Login thunk
 export const loginUser = createAsyncThunk(
   'auth/login',
   async ({ email, password }, { rejectWithValue }) => {
     try {
-      const response = await axios.post(`${API_URL}/api/auth/login`, {
-        email,
-        password,
-      });
+      const response = await axios.post(`${API_URL}/api/auth/login`, { email, password });
       const { accessToken, refreshToken, user } = response.data.data;
       localStorage.setItem('accessToken', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
       return { user, accessToken, refreshToken };
     } catch (err) {
-      return rejectWithValue(
-        err.response?.data?.message || 'Login failed'
-      );
+      return rejectWithValue(err.response?.data?.message || 'Login failed');
     }
   }
 );
 
-// Get current user thunk
 export const getMe = createAsyncThunk(
   'auth/getMe',
   async (_, { rejectWithValue }) => {
@@ -88,17 +57,14 @@ export const getMe = createAsyncThunk(
       });
       return response.data.data.user;
     } catch (err) {
-      return rejectWithValue(
-        err.response?.data?.message || 'Failed to get user'
-      );
+      return rejectWithValue(err.response?.data?.message || 'Failed to get user');
     }
   }
 );
 
-// Logout thunk
 export const logoutUser = createAsyncThunk(
   'auth/logout',
-  async (_, { rejectWithValue }) => {
+  async () => {
     try {
       const token = localStorage.getItem('accessToken');
       const refreshToken = localStorage.getItem('refreshToken');
@@ -107,9 +73,9 @@ export const logoutUser = createAsyncThunk(
         { refreshToken },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
     } catch (err) {
+      // API call failed — still clear tokens below
+    } finally {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
     }
@@ -126,19 +92,14 @@ const authSlice = createSlice({
     error: null,
   },
   reducers: {
-    clearError: (state) => {
-      state.error = null;
-    },
+    clearError: (state) => { state.error = null; },
   },
   extraReducers: (builder) => {
     builder
       .addCase(createRegistrationOrder.rejected, (state, action) => {
         state.error = action.payload;
       })
-      .addCase(registerUser.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
+      .addCase(registerUser.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(registerUser.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload.user;
@@ -149,12 +110,13 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-      .addCase(loginUser.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
+      .addCase(loginUser.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
+        // user and isAuthenticated set together in one synchronous Redux
+        // update — Login.jsx's useEffect([isAuthenticated, user]) will
+        // always see both values at the same time, so role-based redirect
+        // (admin → /admin/dashboard, others → /dashboard) works correctly.
         state.user = action.payload.user;
         state.accessToken = action.payload.accessToken;
         state.isAuthenticated = true;
@@ -163,6 +125,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
         state.isAuthenticated = false;
+        state.user = null;
       })
       .addCase(getMe.fulfilled, (state, action) => {
         state.user = action.payload;

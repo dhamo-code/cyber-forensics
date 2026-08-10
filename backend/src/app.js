@@ -1,4 +1,3 @@
-
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -55,6 +54,11 @@ app.use('/api/logs', require('./routes/logs.routes'));
 app.use('/api/evidence', require('./routes/evidence.routes'));
 app.use('/api/intelligence', require('./routes/intelligence.routes'));
 app.use('/api/reports', require('./routes/reports.routes'));
+// ADDED: admin-only routes (user management, system stats). Registered
+// here — same block as every other route — and, critically, still
+// BEFORE notFound/errorHandler below. That ordering is the whole reason
+// this needed to move out of server.js in the first place.
+app.use('/api/admin', require('./routes/admin.routes'));
 
 // ── Health check ────────────────────────────────────
 app.get('/api/health', (req, res) => {

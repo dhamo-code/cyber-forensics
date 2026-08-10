@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { loginUser, clearError } from '../store/slices/authSlice';
+import { useNavigate } from 'react-router-dom';
+import { loginUser, clearError } from '../../store/slices/authSlice';
 import { Shield, Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { toast } from 'react-toastify';
 
-function Login() {
+function AdminLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -16,29 +16,22 @@ function Login() {
     (state) => state.auth
   );
 
-  // FIX: original always sent everyone to /dashboard. Since admin and
-  // regular users (analyst/viewer) now have separate portals, route
-  // based on the role the backend returned at login. Remember: this is
-  // UX convenience only — the real access control is enforced by
-  // requireRole() on the backend, not by this redirect. Never treat a
-  // frontend route guard as the security boundary.
   useEffect(() => {
-    if (isAuthenticated) {
-      if (user?.role === 'admin') {
+    if (isAuthenticated && user) {
+      if (user.role === 'admin') {
         navigate('/admin/dashboard');
       } else {
-        navigate('/dashboard');
+        // Non-admin tried to use admin login portal — reject them
+        toast.error('Access denied. Admin credentials required.');
+        dispatch({ type: 'auth/logout' });
       }
     }
-  }, [isAuthenticated, user, navigate]);
+  }, [isAuthenticated, user, navigate, dispatch]);
 
   useEffect(() => {
     if (error) {
       toast.error(error);
       dispatch(clearError());
-      // FIX: clear password from local state on a failed attempt.
-      // Small thing, but there's no reason a rejected password should
-      // linger in component state longer than it has to.
       setPassword('');
     }
   }, [error, dispatch]);
@@ -55,55 +48,50 @@ function Login() {
 
   return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
-      {/* Background pattern */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-600 rounded-full opacity-5 blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-600 rounded-full opacity-5 blur-3xl" />
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-red-600 rounded-full opacity-5 blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-600 rounded-full opacity-5 blur-3xl" />
       </div>
 
       <div className="w-full max-w-md relative">
-        {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4 shadow-lg shadow-blue-600/30">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-red-600 rounded-2xl mb-4 shadow-lg shadow-red-600/30">
             <Shield className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-white">
-            CyberForensics
-          </h1>
-          <p className="text-gray-400 text-sm mt-1">
-            AI-Powered Threat Intelligence System
-          </p>
+          <h1 className="text-2xl font-bold text-white">CyberForensics</h1>
+          <p className="text-gray-400 text-sm mt-1">Admin Secure Portal</p>
+          {/* Red banner makes it visually distinct from user login */}
+          <div className="mt-3 inline-flex items-center gap-2 bg-red-900/40 border border-red-700 text-red-300 text-xs px-3 py-1.5 rounded-full">
+            <Shield className="w-3 h-3" />
+            Restricted — Authorized Administrators Only
+          </div>
         </div>
 
-        {/* Login Card */}
-        <div className="bg-gray-800 rounded-2xl border border-gray-700 p-8 shadow-2xl">
+        <div className="bg-gray-800 rounded-2xl border border-red-900/40 p-8 shadow-2xl">
           <h2 className="text-xl font-semibold text-white mb-6">
-            Sign in to your account
+            Administrator Sign In
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-                Email Address
+                Admin Email
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   id="email"
-                  name="email"
                   type="email"
                   autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
+                  placeholder="Enter admin email"
                   className="input pl-10"
                   required
                 />
               </div>
             </div>
 
-            {/* Password */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
                 Password
@@ -112,12 +100,11 @@ function Login() {
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   id="password"
-                  name="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
+                  placeholder="Enter password"
                   className="input pl-10 pr-10"
                   required
                 />
@@ -127,53 +114,35 @@ function Login() {
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200"
                 >
-                  {showPassword ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
 
-            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full py-3 text-base"
+              className="w-full py-3 text-base font-medium rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors disabled:opacity-60"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
                   <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                    <circle
-                      className="opacity-25"
-                      cx="12" cy="12" r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                      fill="none"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8v8H4z"
-                    />
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                   </svg>
                   Signing in...
                 </span>
               ) : (
-                'Sign In'
+                'Sign In as Administrator'
               )}
             </button>
           </form>
 
-          <p className="text-center text-gray-400 text-sm mt-6">
-            Don&apos;t have an account?{' '}
-            <Link
-              to="/register"
-              className="text-blue-400 hover:text-blue-300 font-medium"
-            >
-              Create one
-            </Link>
+          <p className="text-center text-gray-500 text-xs mt-6">
+            Not an admin?{' '}
+            <a href="/login" className="text-blue-400 hover:text-blue-300">
+              Go to user login
+            </a>
           </p>
         </div>
 
@@ -185,4 +154,4 @@ function Login() {
   );
 }
 
-export default Login;
+export default AdminLogin;

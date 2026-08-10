@@ -17,8 +17,15 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 
-const RAZORPAY_KEY_ID =
-  import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_Syh1bUaN3wEUVB';
+// FIX 8: Razorpay key_id now comes ONLY from the backend order response
+// (order.keyId), never hardcoded here. Reasoning: hardcoding a specific
+// merchant's key_id in frontend source ties every clone/fork of this repo
+// to your Razorpay account by default, and rotating keys later means a
+// code change + redeploy instead of an env var update on the backend.
+// We deliberately do NOT provide a fallback string here — if the backend
+// ever fails to send keyId, payment should fail loudly and visibly
+// instead of silently falling back to some other hardcoded key.
+const RAZORPAY_KEY_ID = null;
 
 const REGISTRATION_FEE = 499;
 
@@ -70,8 +77,20 @@ function Register() {
       return;
     }
 
+    // FIX: fail loudly instead of silently degrading to some other key
+    // if the backend didn't send one. A missing keyId here almost
+    // certainly means a backend misconfiguration, and Razorpay charging
+    // against the wrong merchant account is worse than the checkout
+    // just not opening.
+    const resolvedKey = order.keyId || RAZORPAY_KEY_ID;
+    if (!resolvedKey) {
+      toast.error('Payment configuration error. Please contact support.');
+      setPaying(false);
+      return;
+    }
+
     const options = {
-      key: order.keyId || RAZORPAY_KEY_ID,
+      key: resolvedKey,
       amount: order.amount,
       currency: order.currency,
       name: 'CyberForensics',
@@ -183,6 +202,7 @@ function Register() {
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="text"
+                  autoComplete="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Enter your full name"
@@ -200,6 +220,7 @@ function Register() {
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="email"
+                  autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
@@ -217,6 +238,7 @@ function Register() {
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Min. 8 characters"
@@ -226,6 +248,7 @@ function Register() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200"
                 >
                   {showPassword ? (
@@ -245,6 +268,7 @@ function Register() {
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Confirm your password"
@@ -309,7 +333,7 @@ function Register() {
         </div>
 
         <p className="text-center text-gray-500 text-xs mt-6">
-          AI-Powered Cyber Forensics Investigation System v1.0
+          AI-Powered Cyber Forensics Investigation System v2.0
         </p>
       </div>
     </div>
